@@ -6,6 +6,7 @@ import MoodPage from '../pages/MoodPage.vue';
 import CalendarPage from '../pages/CalendarPage.vue';
 import StatisticsPage from '../pages/StatisticsPage.vue';
 import ProfilePage from '../pages/ProfilePage.vue';
+import { getStoredToken } from '../utils/auth';
 
 const routes = [
   { path: '/', redirect: '/login' },
@@ -19,4 +20,19 @@ const routes = [
   { path: '/:pathMatch(.*)*', redirect: '/login' },
 ];
 
-export default routes;
+const router = createRouter({ history: createWebHistory(), routes });
+
+router.beforeEach((to, from, next) => {
+  const token = getStoredToken();
+  const isAuthenticated = !!token;
+
+  if (to.path === '/login' && isAuthenticated) {
+    next('/dashboard');
+  } else if (to.path !== '/login' && !isAuthenticated) {
+    next('/login');
+  } else {
+    next();
+  }
+});
+
+export default router;

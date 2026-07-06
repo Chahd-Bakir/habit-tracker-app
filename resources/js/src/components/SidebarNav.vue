@@ -15,6 +15,10 @@
         <component :is="item.icon" class="h-5 w-5" />
         <span>{{ item.label }}</span>
       </RouterLink>
+      <button type="button" class="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-100" @click="logout">
+        <LogOut class="h-5 w-5" />
+        <span>Logout</span>
+      </button>
     </div>
 
     <div class="mt-4 rounded-3xl bg-emerald-50 p-4 text-sm text-emerald-900">
@@ -25,10 +29,12 @@
 </template>
 
 <script setup>
-import { useRoute, RouterLink } from 'vue-router';
+import { useRouter, useRoute, RouterLink } from 'vue-router';
 import { CalendarDays, ChartColumn, Cog, LogOut, MoonStar, NotebookTabs, PanelLeft, User, Leaf } from 'lucide-vue-next';
+import { clearAuthSession, getStoredToken } from '../utils/auth';
 
 const route = useRoute();
+const router = useRouter();
 
 const items = [
   { label: 'Dashboard', to: '/dashboard', icon: PanelLeft },
@@ -38,8 +44,26 @@ const items = [
   { label: 'Statistics', to: '/statistics', icon: ChartColumn },
   { label: 'Profile', to: '/profile', icon: User },
   { label: 'Settings', to: '/profile', icon: Cog },
-  { label: 'Logout', to: '/login', icon: LogOut },
 ];
 
 const isActive = (to) => route.path === to;
+
+const logout = async () => {
+  const token = getStoredToken();
+
+  try {
+    if (token) {
+      await fetch('/api/logout', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    }
+  } finally {
+    clearAuthSession();
+    await router.push('/login');
+  }
+};
 </script>

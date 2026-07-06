@@ -4,6 +4,7 @@
     :href="href"
     class="inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium transition duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2"
     :class="variantClass"
+    @click="$emit('click', $event)"
   >
     <slot />
   </component>
@@ -16,6 +17,8 @@ const props = defineProps({
   variant: { type: String, default: 'primary' },
   href: { type: String, default: '' },
 });
+
+defineEmits(['click']);
 
 const tag = computed(() => (props.href ? 'a' : 'button'));
 

@@ -2,14 +2,12 @@
   <div class="min-h-screen bg-[linear-gradient(180deg,#f8fff9_0%,#ffffff_28%,#f7faf8_100%)] text-slate-900">
     <div class="mx-auto flex min-h-screen max-w-[1600px]">
       <aside class="hidden lg:flex lg:w-72 lg:flex-col lg:border-r lg:border-emerald-100 lg:bg-white/90 lg:backdrop-blur-xl">
-        <div class="border-b border-emerald-100 px-6 py-6">
-          <SidebarNav />
-        </div>
         <nav class="flex-1 px-4 py-5">
           <SidebarNav />
         </nav>
         <div class="border-t border-emerald-100 px-6 py-5">
-          <p class="text-sm text-slate-500">Signed in as Chahd</p>
+          <p class="text-sm text-slate-500">Signed in as {{ user?.name ?? 'Guest' }}</p>
+          <p class="mt-1 text-sm font-medium text-slate-900">{{ user?.email ?? 'No email found' }}</p>
         </div>
       </aside>
 
@@ -27,5 +25,9 @@
 </template>
 
 <script setup>
+import { computed } from 'vue';
 import SidebarNav from './SidebarNav.vue';
+import { getStoredUser } from '../utils/auth';
+
+const user = computed(() => getStoredUser());
 </script>

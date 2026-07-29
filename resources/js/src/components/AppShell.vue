@@ -13,7 +13,12 @@
 
       <div class="flex min-w-0 flex-1 flex-col">
         <header class="sticky top-0 z-20 border-b border-emerald-100 bg-white/85 px-4 py-4 backdrop-blur-xl sm:px-6 lg:px-8">
-          <slot name="header" />
+          <div class="flex items-center justify-between gap-4">
+            <div class="min-w-0 flex-1">
+              <slot name="header" />
+            </div>
+            <NotificationBell />
+          </div>
         </header>
 
         <main class="flex-1 px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
@@ -27,6 +32,7 @@
 <script setup>
 import { computed } from 'vue';
 import SidebarNav from './SidebarNav.vue';
+import NotificationBell from './NotificationBell.vue';
 import { getStoredUser } from '../utils/auth';
 
 const user = computed(() => getStoredUser());

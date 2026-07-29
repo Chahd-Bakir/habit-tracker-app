@@ -45,19 +45,23 @@
         <form class="mt-8 space-y-4" @submit.prevent="submitForm">
           <label v-if="isRegister" class="block">
             <span class="mb-2 block text-sm font-medium text-slate-700">Name</span>
-            <input v-model="form.name" type="text" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-emerald-400 focus:bg-white" placeholder="Your name">
+            <input v-model="form.name" type="text" @focus="clearError('name')" @blur="validateField('name')" class="w-full rounded-2xl border px-4 py-3 outline-none transition focus:bg-white" :class="errors.name ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-slate-50 focus:border-emerald-400'" placeholder="Your name">
+            <p v-if="errors.name" class="mt-1 text-xs text-red-500">{{ errors.name }}</p>
           </label>
           <label class="block">
             <span class="mb-2 block text-sm font-medium text-slate-700">Email</span>
-            <input v-model="form.email" type="email" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-emerald-400 focus:bg-white" placeholder="chahd@example.com">
+            <input v-model="form.email" type="email" @focus="clearError('email')" @blur="validateField('email')" class="w-full rounded-2xl border px-4 py-3 outline-none transition focus:bg-white" :class="errors.email ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-slate-50 focus:border-emerald-400'" placeholder="chahd@example.com">
+            <p v-if="errors.email" class="mt-1 text-xs text-red-500">{{ errors.email }}</p>
           </label>
           <label class="block">
             <span class="mb-2 block text-sm font-medium text-slate-700">Password</span>
-            <input v-model="form.password" type="password" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-emerald-400 focus:bg-white" placeholder="••••••••">
+            <input v-model="form.password" type="password" @focus="clearError('password')" @blur="validateField('password')" class="w-full rounded-2xl border px-4 py-3 outline-none transition focus:bg-white" :class="errors.password ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-slate-50 focus:border-emerald-400'" placeholder="••••••••">
+            <p v-if="errors.password" class="mt-1 text-xs text-red-500">{{ errors.password }}</p>
           </label>
           <label v-if="isRegister" class="block">
             <span class="mb-2 block text-sm font-medium text-slate-700">Confirm password</span>
-            <input v-model="form.password_confirmation" type="password" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-emerald-400 focus:bg-white" placeholder="••••••••">
+            <input v-model="form.password_confirmation" type="password" @focus="clearError('password_confirmation')" @blur="validateField('password_confirmation')" class="w-full rounded-2xl border px-4 py-3 outline-none transition focus:bg-white" :class="errors.password_confirmation ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-slate-50 focus:border-emerald-400'" placeholder="••••••••">
+            <p v-if="errors.password_confirmation" class="mt-1 text-xs text-red-500">{{ errors.password_confirmation }}</p>
           </label>
           <label v-if="isRegister" class="block">
             <span class="mb-2 block text-sm font-medium text-slate-700">Language</span>
@@ -71,7 +75,7 @@
             <label v-if="!isRegister" class="flex items-center gap-2 text-slate-600"><input type="checkbox" class="h-4 w-4 rounded border-slate-300 text-emerald-500"> Remember me</label>
             <a href="#" class="font-medium text-emerald-700 hover:text-emerald-800">Forgot password?</a>
           </div>
-          <UiButton class="w-full" :disabled="loading">{{ loading ? 'Please wait...' : (isRegister ? 'Create account' : 'Login') }}</UiButton>
+          <UiButton class="w-full" :disabled="loading || !isFormFilled">{{ loading ? 'Please wait...' : (isRegister ? 'Create account' : 'Login') }}</UiButton>
           <UiButton variant="secondary" class="w-full" type="button" @click="goToSocial('google')">
             <svg viewBox="0 0 24 24" class="h-5 w-5"><path fill="currentColor" d="M21.35 11.1h-9.18v2.9h5.26c-.23 1.36-1.52 3.99-5.26 3.99A5.82 5.82 0 0 1 6.33 12a5.82 5.82 0 0 1 5.84-5.99c1.66 0 2.77.71 3.4 1.31l2.32-2.24C16.4 3.7 14.49 2.8 12 2.8 6.88 2.8 2.7 6.98 2.7 12s4.18 9.2 9.3 9.2c5.33 0 8.86-3.74 8.86-9 0-.61-.07-1.09-.18-1.1z"/></svg>
             Continue with Google
@@ -92,7 +96,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, onMounted } from 'vue';
+import { reactive, ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { Leaf } from 'lucide-vue-next';
 import UiButton from '../components/UiButton.vue';
@@ -104,6 +108,13 @@ const isRegister = ref(false);
 const loading = ref(false);
 const message = ref('');
 const messageType = ref('success');
+
+const errors = reactive({
+  name: '',
+  email: '',
+  password: '',
+  password_confirmation: '',
+});
 
 const form = reactive({
   name: '',
@@ -148,7 +159,76 @@ onMounted(async () => {
   }
 });
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const clearError = (field) => { errors[field] = ''; };
+
+const validateField = (field) => {
+  switch (field) {
+    case 'name':
+      if (isRegister.value && !form.name.trim()) errors.name = 'Name is required';
+      else errors.name = '';
+      break;
+    case 'email':
+      if (!form.email.trim()) errors.email = 'Email is required';
+      else if (!EMAIL_REGEX.test(form.email.trim())) errors.email = 'Enter a valid email address';
+      else errors.email = '';
+      break;
+    case 'password':
+      if (!form.password) errors.password = 'Password is required';
+      else if (isRegister.value && form.password.length < 8) errors.password = 'Password must be at least 8 characters';
+      else errors.password = '';
+      break;
+    case 'password_confirmation':
+      if (isRegister.value && form.password !== form.password_confirmation) errors.password_confirmation = 'Passwords do not match';
+      else errors.password_confirmation = '';
+      break;
+  }
+};
+
+const isFormFilled = computed(() => {
+  if (isRegister.value) {
+    return form.name.trim() && form.email.trim() && form.password && form.password_confirmation;
+  }
+  return form.email.trim() && form.password;
+});
+
+const validate = () => {
+  Object.keys(errors).forEach(k => errors[k] = '');
+  let valid = true;
+
+  if (isRegister.value && !form.name.trim()) {
+    errors.name = 'Name is required';
+    valid = false;
+  }
+
+  if (!form.email.trim()) {
+    errors.email = 'Email is required';
+    valid = false;
+  } else if (!EMAIL_REGEX.test(form.email.trim())) {
+    errors.email = 'Enter a valid email address';
+    valid = false;
+  }
+
+  if (!form.password) {
+    errors.password = 'Password is required';
+    valid = false;
+  } else if (isRegister.value && form.password.length < 8) {
+    errors.password = 'Password must be at least 8 characters';
+    valid = false;
+  }
+
+  if (isRegister.value && form.password !== form.password_confirmation) {
+    errors.password_confirmation = 'Passwords do not match';
+    valid = false;
+  }
+
+  return valid;
+};
+
 const submitForm = async () => {
+  if (!validate()) return;
+
   loading.value = true;
   resetMessage();
 

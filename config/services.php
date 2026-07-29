@@ -40,6 +40,10 @@ return [
         'redirect' => env('APPLE_REDIRECT_URI'),
     ],
 
+    'groq' => [
+        'key' => env('GROQ_API_KEY'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

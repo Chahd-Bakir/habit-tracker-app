@@ -18,12 +18,16 @@
         </div>
       </SectionCard>
     </div>
+    <div class="mt-6">
+      <ReminderSettings />
+    </div>
   </AppShell>
 </template>
 
 <script setup>
 import { computed } from 'vue';
 import AppShell from '../components/AppShell.vue';
+import ReminderSettings from '../components/ReminderSettings.vue';
 import SectionCard from '../components/SectionCard.vue';
 import TopBar from '../components/TopBar.vue';
 import UiButton from '../components/UiButton.vue';

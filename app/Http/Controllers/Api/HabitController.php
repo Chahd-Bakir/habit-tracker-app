@@ -12,7 +12,27 @@ class HabitController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $habits = $request->user()->habits()->latest()->get();
+        $habits = $request->user()->habits()->orderBy('position')->get();
+        $today = now()->startOfDay();
+        $changed = false;
+
+        foreach ($habits as $habit) {
+            if ($habit->status === 'done') {
+                $logToday = $habit->logs()->whereDate('completed_date', $today)->exists();
+                if (!$logToday) {
+                    $habit->status = 'todo';
+                    $changed = true;
+                }
+            }
+
+            if ($habit->recalculateStreak()) {
+                $changed = true;
+            }
+        }
+
+        if ($changed) {
+            $habits = $request->user()->habits()->orderBy('position')->get();
+        }
 
         return response()->json([
             'success' => true,
@@ -22,7 +42,9 @@ class HabitController extends Controller
 
     public function store(StoreHabitRequest $request): JsonResponse
     {
-        $habit = $request->user()->habits()->create($request->validated());
+        $data = $request->validated();
+        $data['position'] = ($request->user()->habits()->max('position') ?? -1) + 1;
+        $habit = $request->user()->habits()->create($data);
 
         return response()->json([
             'success' => true,
@@ -45,7 +67,7 @@ class HabitController extends Controller
         ]);
     }
 
-    public function update(Request $request, Habit $habit): JsonResponse
+    public function update(StoreHabitRequest $request, Habit $habit): JsonResponse
     {
         if ($habit->user_id !== $request->user()->id) {
             return response()->json([
@@ -54,7 +76,7 @@ class HabitController extends Controller
             ], 403);
         }
 
-        $habit->update($request->only(['title', 'icon', 'color', 'frequency', 'custom_days', 'reminder_time', 'status']));
+        $habit->update($request->validated());
 
         return response()->json([
             'success' => true,
@@ -84,6 +106,7 @@ class HabitController extends Controller
             $completed = true;
         }
 
+        $habit->recalculateStreak();
         $habit->refresh();
 
         return response()->json([
@@ -91,6 +114,26 @@ class HabitController extends Controller
             'completed' => $completed,
             'habit' => $habit,
         ]);
+    }
+
+    public function reorder(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'habits' => 'required|array',
+            'habits.*.id' => 'required|integer|exists:habits,id',
+            'habits.*.position' => 'required|integer|min:0',
+        ]);
+
+        $ids = collect($validated['habits'])->pluck('id');
+        $userHabits = $request->user()->habits()->whereIn('id', $ids)->get()->keyBy('id');
+
+        foreach ($validated['habits'] as $item) {
+            if ($userHabits->has($item['id'])) {
+                $userHabits[$item['id']]->update(['position' => $item['position']]);
+            }
+        }
+
+        return response()->json(['success' => true]);
     }
 
     public function destroy(Request $request, Habit $habit): JsonResponse

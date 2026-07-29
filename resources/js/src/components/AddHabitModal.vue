@@ -1,13 +1,28 @@
 <template>
-  <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+  <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" @click.self="close">
     <div class="w-full max-w-md rounded-[36px] border border-emerald-100 bg-white p-6 shadow-[0_26px_80px_rgba(15,23,42,0.08)] sm:p-8">
       <div class="mb-6 flex items-center justify-between">
-        <h2 class="text-2xl font-semibold text-slate-900">Add new habit</h2>
+        <h2 class="text-2xl font-semibold text-slate-900">{{ isEditing ? 'Edit habit' : 'Add new habit' }}</h2>
         <button type="button" @click="close" class="rounded-full p-2 text-slate-500 hover:bg-slate-100">
           <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
+      </div>
+
+      <div v-if="suggestions.length > 0 && !isEditing" class="mb-5">
+        <p class="mb-2 text-sm font-medium text-slate-700">Quick add from suggestions</p>
+        <div class="grid grid-cols-2 gap-2">
+          <button v-for="s in suggestions" :key="s.id" type="button" @click="applySuggestion(s)" class="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 text-left">
+            <span class="text-lg">{{ s.icon || '📋' }}</span>
+            <span class="min-w-0 flex-1 truncate font-medium">{{ s.name }}</span>
+          </button>
+        </div>
+        <div class="my-4 flex items-center gap-3">
+          <span class="h-px flex-1 bg-slate-200"></span>
+          <span class="text-xs text-slate-400">or create your own</span>
+          <span class="h-px flex-1 bg-slate-200"></span>
+        </div>
       </div>
 
       <form @submit.prevent="submitForm" class="space-y-4">
@@ -64,34 +79,31 @@
           {{ message }}
         </div>
 
-        <UiButton class="w-full" :disabled="loading">{{ loading ? 'Creating...' : 'Create habit' }}</UiButton>
+        <UiButton class="w-full" :disabled="loading">{{ loading ? (isEditing ? 'Saving...' : 'Creating...') : (isEditing ? 'Save changes' : 'Create habit') }}</UiButton>
       </form>
     </div>
   </div>
 </template>
 
 <script setup>
-import { reactive, ref, watch } from 'vue';
+import { reactive, ref, watch, computed } from 'vue';
 import UiButton from './UiButton.vue';
 import { getStoredToken } from '../utils/auth';
 
 const props = defineProps({
   isOpen: Boolean,
+  habit: { type: Object, default: null },
 });
 
-const emit = defineEmits(['close', 'habitCreated']);
+const emit = defineEmits(['close', 'habitCreated', 'habitUpdated']);
+
+const isEditing = computed(() => !!props.habit);
 
 const loading = ref(false);
 const message = ref('');
 const messageType = ref('success');
 const errors = reactive({});
-
-watch(() => props.isOpen, (newVal) => {
-  console.log('Modal isOpen changed:', newVal);
-  if (newVal) {
-    resetForm();
-  }
-});
+const suggestions = ref([]);
 
 const form = reactive({
   title: '',
@@ -104,9 +116,9 @@ const form = reactive({
 
 const icons = ['🏃', '💧', '📚', '🧘', '🍎', '😴', '💪', '🎯', '🌱', '☀️', '🧠', '❤️'];
 const colors = [
-  '#10b981', // Green - Health & wellness
-  '#3b82f6', // Blue - Productivity & focus
-  '#ef4444', // Red - Urgent & important
+  '#10b981',
+  '#3b82f6',
+  '#ef4444',
 ];
 const days = [
   { label: 'Mon', value: 'monday' },
@@ -118,9 +130,21 @@ const days = [
   { label: 'Sun', value: 'sunday' },
 ];
 
-watch(() => props.isOpen, (newVal) => {
-  if (newVal) {
-    resetForm();
+watch(() => props.isOpen, (open) => {
+  if (open) {
+    if (props.habit) {
+      form.title = props.habit.title || '';
+      form.icon = props.habit.icon || '🏃';
+      form.color = props.habit.color || '#10b981';
+      form.frequency = props.habit.frequency || 'daily';
+      form.custom_days = [...(props.habit.custom_days || [])];
+      form.reminder_time = props.habit.reminder_time || '';
+    } else {
+      resetForm();
+    }
+    Object.keys(errors).forEach(key => delete errors[key]);
+    message.value = '';
+    fetchSuggestions();
   }
 });
 
@@ -131,12 +155,27 @@ const resetForm = () => {
   form.frequency = 'daily';
   form.custom_days = [];
   form.reminder_time = '';
-  Object.keys(errors).forEach(key => delete errors[key]);
-  message.value = '';
+};
+
+const fetchSuggestions = async () => {
+  const token = getStoredToken();
+  try {
+    const res = await fetch('/api/suggestions', {
+      headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
+    });
+    const json = await res.json();
+    if (json.success) suggestions.value = json.suggestions;
+  } catch (e) {
+    /* silent */
+  }
+};
+
+const applySuggestion = (s) => {
+  form.title = s.name;
+  form.icon = s.icon || '🏃';
 };
 
 const close = () => {
-  console.log('Closing modal');
   emit('close');
 };
 
@@ -176,9 +215,7 @@ const validateForm = () => {
 };
 
 const submitForm = async () => {
-  if (!validateForm()) {
-    return;
-  }
+  if (!validateForm()) return;
 
   loading.value = true;
   message.value = '';
@@ -197,8 +234,11 @@ const submitForm = async () => {
   }
 
   try {
-    const response = await fetch('/api/habits', {
-      method: 'POST',
+    const url = isEditing.value ? `/api/habits/${props.habit.id}` : '/api/habits';
+    const method = isEditing.value ? 'PATCH' : 'POST';
+
+    const response = await fetch(url, {
+      method,
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
@@ -213,15 +253,16 @@ const submitForm = async () => {
       if (data.errors) {
         Object.assign(errors, data.errors);
       } else {
-        throw new Error(data.message || 'Failed to create habit');
+        throw new Error(data.message || `Failed to ${isEditing.value ? 'update' : 'create'} habit`);
       }
       return;
     }
 
-    messageType.value = 'success';
-    message.value = 'Habit created successfully!';
-    
-    emit('habitCreated', data.habit);
+    if (isEditing.value) {
+      emit('habitUpdated', data.habit);
+    } else {
+      emit('habitCreated', data.habit);
+    }
     close();
   } catch (error) {
     messageType.value = 'error';

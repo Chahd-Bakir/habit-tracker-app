@@ -1,7 +1,7 @@
 <template>
   <article
     :class="[
-      'rounded-[28px] border p-5 shadow-sm transition-all duration-300 select-none',
+      'group relative rounded-[28px] border p-5 shadow-sm transition-all duration-300 select-none',
       completed
         ? 'border-emerald-200 bg-emerald-50/60'
         : 'border-emerald-100 bg-white hover:-translate-y-0.5 hover:bg-emerald-50/30',
@@ -36,9 +36,47 @@
           <p class="mt-1 text-sm text-slate-500 capitalize truncate">
             {{ habit.frequency === 'custom' && habit.custom_days ? habit.custom_days.join(', ') : habit.frequency }}
           </p>
+          <div class="mt-1.5 flex items-center gap-3 text-xs">
+            <span class="flex items-center gap-1">
+              <span>🔥</span>
+              <span class="font-medium text-slate-600">{{ habit.current_streak ?? 0 }}</span>
+            </span>
+            <span class="flex items-center gap-1">
+              <span>🏆</span>
+              <span class="font-medium text-slate-600">{{ habit.longest_streak ?? 0 }}</span>
+            </span>
+          </div>
         </div>
       </div>
-      <GripVertical class="drag-handle mt-1 h-5 w-5 flex-shrink-0 text-slate-300 cursor-grab active:cursor-grabbing" />
+      <div class="flex items-center gap-1 flex-shrink-0">
+        <div class="relative">
+          <button
+            type="button"
+            @click.stop="menuOpen = !menuOpen"
+            class="rounded-full p-1.5 text-slate-400 opacity-0 group-hover:opacity-100 hover:bg-slate-100 hover:text-slate-600 transition"
+          >
+            <MoreHorizontal class="h-5 w-5" />
+          </button>
+          <div
+            v-if="menuOpen"
+            class="absolute right-0 top-full z-40 mt-1 w-40 rounded-2xl border border-slate-100 bg-white py-2 shadow-lg"
+          >
+            <button
+              @click.stop="handleEdit"
+              class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition"
+            >
+              <Pencil class="h-4 w-4" /> Edit
+            </button>
+            <button
+              @click.stop="handleDelete"
+              class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition"
+            >
+              <Trash2 class="h-4 w-4" /> Delete
+            </button>
+          </div>
+        </div>
+        <GripVertical class="drag-handle h-5 w-5 text-slate-300 cursor-grab active:cursor-grabbing" />
+      </div>
     </div>
     <div v-if="habit.reminder_time" class="mt-4 flex items-center gap-2 text-sm text-slate-500">
       <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -50,17 +88,18 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
-import { Check, GripVertical } from 'lucide-vue-next';
+import { ref, watch, onMounted, onUnmounted } from 'vue';
+import { Check, GripVertical, MoreHorizontal, Pencil, Trash2 } from 'lucide-vue-next';
 
 const props = defineProps({
   habit: { type: Object, required: true },
   completed: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['toggle']);
+const emit = defineEmits(['toggle', 'edit', 'delete']);
 
 const showCheck = ref(props.completed);
+const menuOpen = ref(false);
 
 watch(() => props.completed, (val) => {
   if (val && !showCheck.value) {
@@ -78,6 +117,25 @@ const handleToggle = () => {
   showCheck.value = becomingCompleted;
   emit('toggle', props.habit);
 };
+
+const handleEdit = () => {
+  menuOpen.value = false;
+  emit('edit', props.habit);
+};
+
+const handleDelete = () => {
+  menuOpen.value = false;
+  emit('delete', props.habit);
+};
+
+const closeMenu = (e) => {
+  if (menuOpen.value) {
+    menuOpen.value = false;
+  }
+};
+
+onMounted(() => { document.addEventListener('click', closeMenu); });
+onUnmounted(() => { document.removeEventListener('click', closeMenu); });
 </script>
 
 <style scoped>

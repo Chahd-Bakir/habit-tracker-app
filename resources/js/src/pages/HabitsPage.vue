@@ -23,7 +23,6 @@
             group="habits"
             :handle="'.drag-handle'"
             item-key="id"
-            :data-column="col.key"
             @change="(evt) => onChange(col.key, evt)"
           >
             <template #item="{ element }">
@@ -32,6 +31,8 @@
                   :habit="element"
                   :completed="!!element._completed"
                   @toggle="handleToggle"
+                  @edit="openEditModal"
+                  @delete="confirmDelete"
                 />
               </div>
             </template>
@@ -40,7 +41,21 @@
       </div>
     </div>
 
-    <AddHabitModal :is-open="isModalOpen" @close="closeModal" @habit-created="onHabitCreated" />
+    <AddHabitModal
+      :is-open="isModalOpen"
+      :habit="editingHabit"
+      @close="closeModal"
+      @habit-created="onHabitCreated"
+      @habit-updated="onHabitUpdated"
+    />
+
+    <ConfirmDialog
+      :is-open="deleteConfirmOpen"
+      :title="'Delete ' + (deletingHabit?.title || 'habit') + '?'"
+      :message="'Are you sure you want to delete this habit? All past history will be preserved.'"
+      @confirm="handleDelete"
+      @cancel="deleteConfirmOpen = false"
+    />
   </AppShell>
 </template>
 
@@ -51,12 +66,16 @@ import AppShell from '../components/AppShell.vue';
 import TopBar from '../components/TopBar.vue';
 import HabitCard from '../components/HabitCard.vue';
 import AddHabitModal from '../components/AddHabitModal.vue';
+import ConfirmDialog from '../components/ConfirmDialog.vue';
 import { getStoredToken } from '../utils/auth';
 
 const todoHabits = ref([]);
 const doingHabits = ref([]);
 const doneHabits = ref([]);
 const isModalOpen = ref(false);
+const editingHabit = ref(null);
+const deleteConfirmOpen = ref(false);
+const deletingHabit = ref(null);
 
 const columnsDef = [
   { key: 'todo', title: 'To Do', dotClass: 'bg-slate-400', borderClass: 'border-slate-100 hover:border-slate-200' },
@@ -81,6 +100,25 @@ const removeFromCurrentList = (habit) => {
     const idx = ref.value.indexOf(habit);
     if (idx !== -1) ref.value.splice(idx, 1);
   });
+};
+
+const persistOrder = async () => {
+  const all = [
+    ...todoHabits.value.map((h, i) => ({ id: h.id, position: i })),
+    ...doingHabits.value.map((h, i) => ({ id: h.id, position: i })),
+    ...doneHabits.value.map((h, i) => ({ id: h.id, position: i })),
+  ];
+
+  const token = getStoredToken();
+  try {
+    await fetch('/api/habits/reorder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ habits: all }),
+    });
+  } catch (error) {
+    console.error('Failed to persist order:', error);
+  }
 };
 
 let snapshot = null;
@@ -146,6 +184,11 @@ const fetchHabits = async () => {
 };
 
 const onChange = async (targetStatus, evt) => {
+  if (evt.moved) {
+    await persistOrder();
+    return;
+  }
+
   if (!evt.added) return;
   const habit = evt.added.element;
   const fromStatus = habit.status;
@@ -167,6 +210,8 @@ const onChange = async (targetStatus, evt) => {
       if (!response.ok || !data.success) throw new Error(data.message || 'Request failed');
       habit._completed = data.completed;
       habit.status = data.habit.status;
+      habit.current_streak = data.habit.current_streak;
+      habit.longest_streak = data.habit.longest_streak;
     } else {
       const response = await fetch(`/api/habits/${habit.id}`, {
         method: 'PATCH',
@@ -176,6 +221,7 @@ const onChange = async (targetStatus, evt) => {
       const data = await response.json();
       if (!response.ok || !data.success) throw new Error(data.message || 'Request failed');
     }
+    await persistOrder();
   } catch (error) {
     console.error('Failed to update habit:', error);
     restoreSnapshot();
@@ -205,18 +251,75 @@ const handleToggle = async (habit) => {
     if (!response.ok || !data.success) throw new Error(data.message || 'Request failed');
     habit._completed = data.completed;
     habit.status = data.habit.status;
+    habit.current_streak = data.habit.current_streak;
+    habit.longest_streak = data.habit.longest_streak;
+    await persistOrder();
   } catch (error) {
     console.error('Failed to toggle habit:', error);
     restoreSnapshot();
   }
 };
 
-const openModal = () => { isModalOpen.value = true; };
-const closeModal = () => { isModalOpen.value = false; };
+const openModal = () => {
+  editingHabit.value = null;
+  isModalOpen.value = true;
+};
+
+const openEditModal = (habit) => {
+  editingHabit.value = habit;
+  isModalOpen.value = true;
+};
+
+const closeModal = () => {
+  isModalOpen.value = false;
+  editingHabit.value = null;
+};
+
 const onHabitCreated = (habit) => {
   habit._completed = false;
   habit.status = habit.status || 'todo';
   todoHabits.value.unshift(habit);
+  persistOrder();
+};
+
+const onHabitUpdated = (updated) => {
+  const all = [...todoHabits.value, ...doingHabits.value, ...doneHabits.value];
+  const existing = all.find(h => h.id === updated.id);
+  if (existing) {
+    Object.assign(existing, updated);
+    existing._completed = existing._completed ?? false;
+  }
+  closeModal();
+  persistOrder();
+};
+
+const confirmDelete = (habit) => {
+  deletingHabit.value = habit;
+  deleteConfirmOpen.value = true;
+};
+
+const handleDelete = async () => {
+  const habit = deletingHabit.value;
+  if (!habit) return;
+  deleteConfirmOpen.value = false;
+
+  removeFromCurrentList(habit);
+
+  try {
+    const token = getStoredToken();
+    const response = await fetch(`/api/habits/${habit.id}`, {
+      method: 'DELETE',
+      headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
+    });
+    const data = await response.json();
+    if (!response.ok || !data.success) throw new Error(data.message || 'Failed to delete habit');
+    await persistOrder();
+  } catch (error) {
+    console.error('Failed to delete habit:', error);
+    await fetchHabits();
+  }
+
+  deletingHabit.value = null;
 };
 
 onMounted(() => { fetchHabits(); });

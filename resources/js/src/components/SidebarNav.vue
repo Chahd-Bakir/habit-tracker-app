@@ -5,13 +5,13 @@
         <Leaf class="h-6 w-6" />
       </div>
       <div>
-        <p class="text-lg font-semibold">Khotwa</p>
-        <p class="text-sm text-slate-500">Habit & wellness</p>
+        <p class="text-lg font-semibold">{{ brandTitle }}</p>
+        <p class="text-sm text-slate-500">{{ brandSubtitle }}</p>
       </div>
     </div>
 
     <div class="mt-8 flex flex-1 flex-col gap-2">
-      <RouterLink v-for="item in items" :key="item.label" :to="item.to" class="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition" :class="isActive(item.to) ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-100'">
+      <RouterLink v-for="item in items" :key="item.to" :to="item.to" class="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition" :class="isActive(item.to) ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-100'">
         <component :is="item.icon" class="h-5 w-5" />
         <span>{{ item.label }}</span>
       </RouterLink>
@@ -21,7 +21,7 @@
       </button>
     </div>
 
-    <div class="mt-4 rounded-3xl bg-emerald-50 p-4 text-sm text-emerald-900">
+    <div v-if="showFocusCard" class="mt-4 rounded-3xl bg-emerald-50 p-4 text-sm text-emerald-900">
       <p class="font-semibold">Today's focus</p>
       <p class="mt-1 text-emerald-700">Small steps, repeated daily, shape the bigger picture.</p>
     </div>
@@ -33,18 +33,27 @@ import { useRouter, useRoute, RouterLink } from 'vue-router';
 import { CalendarDays, ChartColumn, Cog, LogOut, MoonStar, NotebookTabs, PanelLeft, User, Leaf } from 'lucide-vue-next';
 import { clearAuthSession, getStoredToken } from '../utils/auth';
 
+const props = defineProps({
+  items: {
+    type: Array,
+    default: () => [
+      { label: 'Dashboard', to: '/dashboard', icon: PanelLeft },
+      { label: 'My Habits', to: '/habits', icon: NotebookTabs },
+      { label: 'Mood Journal', to: '/mood', icon: MoonStar },
+      { label: 'Calendar', to: '/calendar', icon: CalendarDays },
+      { label: 'Statistics', to: '/statistics', icon: ChartColumn },
+      { label: 'Profile', to: '/profile', icon: User },
+      { label: 'Settings', to: '/profile', icon: Cog },
+    ],
+  },
+  brandTitle: { type: String, default: 'Khotwa' },
+  brandSubtitle: { type: String, default: 'Habit & wellness' },
+  showFocusCard: { type: Boolean, default: true },
+  logoutTarget: { type: String, default: '/login' },
+});
+
 const route = useRoute();
 const router = useRouter();
-
-const items = [
-  { label: 'Dashboard', to: '/dashboard', icon: PanelLeft },
-  { label: 'My Habits', to: '/habits', icon: NotebookTabs },
-  { label: 'Mood Journal', to: '/mood', icon: MoonStar },
-  { label: 'Calendar', to: '/calendar', icon: CalendarDays },
-  { label: 'Statistics', to: '/statistics', icon: ChartColumn },
-  { label: 'Profile', to: '/profile', icon: User },
-  { label: 'Settings', to: '/profile', icon: Cog },
-];
 
 const isActive = (to) => route.path === to;
 
@@ -63,7 +72,7 @@ const logout = async () => {
     }
   } finally {
     clearAuthSession();
-    await router.push('/login');
+    await router.push(props.logoutTarget);
   }
 };
 </script>

@@ -1,13 +1,9 @@
 <template>
   <AdminLayout>
     <template #header>
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-lg font-semibold text-slate-900">Habit Suggestions</h1>
-          <p class="text-sm text-slate-500">Manage suggested habits for onboarding</p>
-        </div>
-        <button @click="openCreate" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition">+ New suggestion</button>
-      </div>
+      <TopBar eyebrow="Admin" title="Habit Suggestions">
+        <button @click="openCreate" class="rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 transition">+ New suggestion</button>
+      </TopBar>
     </template>
 
     <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
@@ -80,6 +76,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import AdminLayout from '../components/AdminLayout.vue';
+import TopBar from '../components/TopBar.vue';
 import { getStoredToken } from '../utils/auth';
 
 const suggestions = ref([]);

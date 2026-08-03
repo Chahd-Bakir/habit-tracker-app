@@ -4,17 +4,14 @@
 
     <div class="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
       <div class="grid gap-6">
-        <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Daily progress" value="78%" caption="5 of 7 habits completed">
+        <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <StatCard label="Daily progress" :value="`${progress.percentage}%`" :caption="`${progress.completed} of ${progress.total} habits completed`">
             <template #icon><ChartColumn class="h-5 w-5" /></template>
           </StatCard>
-          <StatCard label="Current streak" value="12 days" caption="Keep the chain going">
+          <StatCard label="Current streak" :value="`${streak.current} days`" :caption="streak.current > 0 ? `Longest: ${streak.longest} days` : 'Start a habit to build a streak'">
             <template #icon><Flame class="h-5 w-5" /></template>
           </StatCard>
-          <StatCard label="Water today" value="6 cups" caption="2 cups away from target">
-            <template #icon><Droplets class="h-5 w-5" /></template>
-          </StatCard>
-          <StatCard label="Mood score" value="8.6/10" caption="Calm, steady energy">
+          <StatCard label="Mood score" :value="mood.score !== null ? `${mood.score}/10` : 'No data'" :caption="mood.label ?? 'Log a mood to see your score'">
             <template #icon><Sparkles class="h-5 w-5" /></template>
           </StatCard>
         </div>
@@ -57,20 +54,15 @@
       </div>
 
       <div class="grid gap-6">
-        <ProgressRing :value="78" label="Daily progress" description="You are closer than yesterday." />
+        <ProgressRing :value="progress.percentage" label="Daily progress" description="You are closer than yesterday." />
         <SectionCard>
           <template #header><h2 class="text-lg font-semibold text-slate-900">Recent activity</h2></template>
-          <div class="space-y-3">
-            <ActivityItem title="Completed morning stretch" description="5 minutes of movement after waking up" time="08:10">
-              <template #icon><StretchHorizontal class="h-4 w-4" /></template>
-            </ActivityItem>
-            <ActivityItem title="Logged a calm mood" description="Noted gratitude and steady focus" time="10:30">
-              <template #icon><Smile class="h-4 w-4" /></template>
-            </ActivityItem>
-            <ActivityItem title="Drank water" description="Reached half of hydration goal" time="12:05">
-              <template #icon><GlassWater class="h-4 w-4" /></template>
+          <div v-if="activity.length > 0" class="space-y-3">
+            <ActivityItem v-for="(item, index) in activity" :key="index" :title="item.title" :description="item.description" :time="item.time">
+              <template #icon><span class="text-lg">{{ item.icon }}</span></template>
             </ActivityItem>
           </div>
+          <p v-else class="py-6 text-center text-sm text-slate-400">No activity yet. Check off a habit or log a mood to see it here.</p>
         </SectionCard>
         <SectionCard>
           <template #header><h2 class="text-lg font-semibold text-slate-900">Motivational quote</h2></template>
@@ -84,8 +76,8 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted } from 'vue';
-import { ChartColumn, Flame, Droplets, Sparkles, Smile, GlassWater, StretchHorizontal } from 'lucide-vue-next';
+import { computed, ref, reactive, onMounted } from 'vue';
+import { ChartColumn, Flame, Sparkles } from 'lucide-vue-next';
 import ActivityItem from '../components/ActivityItem.vue';
 import AddHabitModal from '../components/AddHabitModal.vue';
 import AppShell from '../components/AppShell.vue';
@@ -104,6 +96,11 @@ const greetingInitials = computed(() => getUserInitials(user.value));
 
 const habits = ref([]);
 const isModalOpen = ref(false);
+const activity = ref([]);
+
+const progress = reactive({ completed: 0, total: 0, percentage: 0 });
+const streak = reactive({ current: 0, longest: 0 });
+const mood = reactive({ score: null, label: null });
 
 const fetchHabits = async () => {
   const token = getStoredToken();
@@ -123,6 +120,34 @@ const fetchHabits = async () => {
   }
 };
 
+const fetchDashboard = async () => {
+  const token = getStoredToken();
+  try {
+    const response = await fetch('/api/dashboard', {
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    const data = await response.json();
+    if (!response.ok || !data.success) return;
+
+    progress.completed = data.daily_progress.completed;
+    progress.total = data.daily_progress.total;
+    progress.percentage = data.daily_progress.percentage;
+
+    streak.current = data.streak.current;
+    streak.longest = data.streak.longest;
+
+    mood.score = data.mood.score;
+    mood.label = data.mood.label;
+
+    activity.value = data.recent_activity;
+  } catch (error) {
+    console.error('Failed to fetch dashboard data:', error);
+  }
+};
+
 const openModal = () => {
   isModalOpen.value = true;
 };
@@ -139,5 +164,6 @@ const week = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 onMounted(() => {
   fetchHabits();
+  fetchDashboard();
 });
 </script>

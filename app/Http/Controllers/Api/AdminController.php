@@ -42,6 +42,7 @@ class AdminController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'role' => $user->role,
                 'roles' => $user->getRoleNames(),
             ],
             'token' => $token,
@@ -54,6 +55,7 @@ class AdminController extends Controller
             'id' => $u->id,
             'name' => $u->name,
             'email' => $u->email,
+            'role' => $u->role,
             'roles' => $u->getRoleNames(),
             'created_at' => $u->created_at->toIso8601String(),
         ]);

@@ -1,8 +1,7 @@
 <template>
   <AdminLayout>
     <template #header>
-      <h1 class="text-lg font-semibold text-slate-900">Users</h1>
-      <p class="text-sm text-slate-500">All registered users</p>
+      <TopBar eyebrow="Admin" title="Users" />
     </template>
 
     <div v-if="loading" class="py-12 text-center text-sm text-slate-400">Loading users...</div>
@@ -22,7 +21,7 @@
             <td class="px-4 py-3">{{ u.name }}</td>
             <td class="px-4 py-3">{{ u.email }}</td>
             <td class="px-4 py-3">
-              <span v-for="r in u.roles" :key="r" class="mr-1 inline-block rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-medium text-indigo-700">{{ r }}</span>
+              <span v-for="r in roleList(u)" :key="r" class="mr-1 inline-block rounded-full px-2.5 py-0.5 text-xs font-medium" :class="r === 'admin' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'">{{ r }}</span>
             </td>
             <td class="px-4 py-3 text-slate-500">{{ formatDate(u.created_at) }}</td>
           </tr>
@@ -35,6 +34,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import AdminLayout from '../components/AdminLayout.vue';
+import TopBar from '../components/TopBar.vue';
 import { getStoredToken } from '../utils/auth';
 
 const loading = ref(false);
@@ -43,6 +43,11 @@ const users = ref([]);
 const formatDate = (iso) => {
   if (!iso) return '-';
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
+const roleList = (u) => {
+  if (!u.role) return u.roles || [];
+  return [u.role, ...(u.roles || []).filter((r) => r !== u.role)];
 };
 
 onMounted(async () => {

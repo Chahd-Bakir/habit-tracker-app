@@ -40,3 +40,15 @@ export const saveAuthSession = (user, token) => {
 export const updateStoredUser = (user) => {
   localStorage.setItem('auth_user', JSON.stringify(user));
 };
+
+export const getUserRole = (user) => {
+  if (!user) {
+    return 'user';
+  }
+
+  if (user.role === 'admin' || (Array.isArray(user.roles) && user.roles.includes('admin'))) {
+    return 'admin';
+  }
+
+  return 'user';
+};

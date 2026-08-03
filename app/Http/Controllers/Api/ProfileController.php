@@ -23,12 +23,18 @@ class ProfileController extends Controller
         $user = $request->user();
 
         DB::transaction(function () use ($request, $user): void {
+            $data = $request->validated();
+
             $user->update([
-                'language' => $request->validated('language'),
+                'name' => $data['name'],
+                'email' => $data['email'],
+                'language' => $data['language'],
                 'onboarding_completed' => true,
             ]);
 
-            $user->goals()->sync($request->validated('goals'));
+            if (array_key_exists('goals', $data)) {
+                $user->goals()->sync($data['goals']);
+            }
         });
 
         $user->load('goals');

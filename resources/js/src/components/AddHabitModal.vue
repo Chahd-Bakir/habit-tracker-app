@@ -1,8 +1,8 @@
 <template>
   <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" @click.self="close">
-    <div class="w-full max-w-md rounded-[36px] border border-emerald-100 bg-white p-6 shadow-[0_26px_80px_rgba(15,23,42,0.08)] sm:p-8">
-      <div class="mb-6 flex items-center justify-between">
-        <h2 class="text-2xl font-semibold text-slate-900">{{ isEditing ? 'Edit habit' : 'Add new habit' }}</h2>
+    <div class="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-[36px] border border-emerald-100 bg-white p-6 shadow-[0_26px_80px_rgba(15,23,42,0.08)] sm:p-8">
+      <div class="mb-4 flex shrink-0 items-center justify-between">
+        <h2 class="text-xl font-semibold text-slate-900">{{ isEditing ? 'Edit habit' : 'Add new habit' }}</h2>
         <button type="button" @click="close" class="rounded-full p-2 text-slate-500 hover:bg-slate-100">
           <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -10,76 +10,82 @@
         </button>
       </div>
 
-      <div v-if="suggestions.length > 0 && !isEditing" class="mb-5">
-        <p class="mb-2 text-sm font-medium text-slate-700">Quick add from suggestions</p>
-        <div class="grid grid-cols-2 gap-2">
-          <button v-for="s in suggestions" :key="s.id" type="button" @click="applySuggestion(s)" class="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 text-left">
-            <span class="text-lg">{{ s.icon || '📋' }}</span>
-            <span class="min-w-0 flex-1 truncate font-medium">{{ s.name }}</span>
-          </button>
-        </div>
-        <div class="my-4 flex items-center gap-3">
-          <span class="h-px flex-1 bg-slate-200"></span>
-          <span class="text-xs text-slate-400">or create your own</span>
-          <span class="h-px flex-1 bg-slate-200"></span>
-        </div>
-      </div>
-
-      <form @submit.prevent="submitForm" class="space-y-4">
-        <label class="block">
-          <span class="mb-2 block text-sm font-medium text-slate-700">Habit name *</span>
-          <input v-model="form.title" type="text" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-emerald-400 focus:bg-white" placeholder="e.g., Morning stretch">
-          <span v-if="errors.title" class="mt-1 text-sm text-red-600">{{ errors.title }}</span>
-        </label>
-
-        <label class="block">
-          <span class="mb-2 block text-sm font-medium text-slate-700">Icon *</span>
-          <div class="grid grid-cols-6 gap-2">
-            <button v-for="icon in icons" :key="icon" type="button" @click="form.icon = icon" class="flex h-10 w-10 items-center justify-center rounded-xl border transition" :class="form.icon === icon ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 text-slate-500 hover:border-emerald-300'">
-              {{ icon }}
-            </button>
+      <form @submit.prevent="submitForm" class="flex min-h-0 flex-1 flex-col">
+        <div class="-mr-2 min-h-0 flex-1 space-y-4 overflow-y-auto pr-2">
+          <div v-if="suggestions.length > 0 && !isEditing">
+            <p class="mb-1.5 text-sm font-medium text-slate-700">Quick add from suggestions</p>
+            <div class="grid grid-cols-2 gap-2">
+              <button v-for="s in suggestions" :key="s.id" type="button" @click="applySuggestion(s)" class="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 text-left">
+                <span class="text-lg">{{ s.icon || '📋' }}</span>
+                <span class="min-w-0 flex-1 truncate font-medium">{{ s.name }}</span>
+              </button>
+            </div>
+            <div class="my-3 flex items-center gap-3">
+              <span class="h-px flex-1 bg-slate-200"></span>
+              <span class="text-xs text-slate-400">or create your own</span>
+              <span class="h-px flex-1 bg-slate-200"></span>
+            </div>
           </div>
-          <span v-if="errors.icon" class="mt-1 text-sm text-red-600">{{ errors.icon }}</span>
-        </label>
 
-        <label class="block">
-          <span class="mb-2 block text-sm font-medium text-slate-700">Color *</span>
-          <div class="grid grid-cols-6 gap-2">
-            <button v-for="color in colors" :key="color" type="button" @click="form.color = color" class="h-10 w-10 rounded-xl border transition" :class="form.color === color ? 'border-emerald-500 ring-2 ring-emerald-200' : 'border-slate-200 hover:border-emerald-300'" :style="{ backgroundColor: color }"></button>
+          <div class="space-y-3">
+            <label class="block">
+              <span class="mb-1.5 block text-sm font-medium text-slate-700">Habit name *</span>
+              <input v-model="form.title" type="text" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 outline-none transition focus:border-emerald-400 focus:bg-white" placeholder="e.g., Morning stretch">
+              <span v-if="errors.title" class="mt-1 text-sm text-red-600">{{ errors.title }}</span>
+            </label>
+
+            <label class="block">
+              <span class="mb-1.5 block text-sm font-medium text-slate-700">Icon *</span>
+              <div class="grid grid-cols-6 gap-1.5">
+                <button v-for="icon in icons" :key="icon" type="button" @click="form.icon = icon" class="flex h-9 w-9 items-center justify-center rounded-xl border transition" :class="form.icon === icon ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 text-slate-500 hover:border-emerald-300'">
+                  {{ icon }}
+                </button>
+              </div>
+              <span v-if="errors.icon" class="mt-1 text-sm text-red-600">{{ errors.icon }}</span>
+            </label>
+
+            <label class="block">
+              <span class="mb-1.5 block text-sm font-medium text-slate-700">Color *</span>
+              <div class="flex gap-2">
+                <button v-for="color in colors" :key="color" type="button" @click="form.color = color" class="h-9 w-9 rounded-xl border transition" :class="form.color === color ? 'border-emerald-500 ring-2 ring-emerald-200' : 'border-slate-200 hover:border-emerald-300'" :style="{ backgroundColor: color }"></button>
+              </div>
+              <span v-if="errors.color" class="mt-1 text-sm text-red-600">{{ errors.color }}</span>
+            </label>
+
+            <label class="block">
+              <span class="mb-1.5 block text-sm font-medium text-slate-700">Frequency *</span>
+              <select v-model="form.frequency" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 outline-none transition focus:border-emerald-400 focus:bg-white">
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="custom">Custom days</option>
+              </select>
+              <span v-if="errors.frequency" class="mt-1 text-sm text-red-600">{{ errors.frequency }}</span>
+            </label>
+
+            <label v-if="form.frequency === 'custom'" class="block">
+              <span class="mb-1.5 block text-sm font-medium text-slate-700">Select days</span>
+              <div class="grid grid-cols-7 gap-1.5">
+                <button v-for="day in days" :key="day.value" type="button" @click="toggleDay(day.value)" class="rounded-xl border px-1 py-1.5 text-xs font-medium transition" :class="form.custom_days?.includes(day.value) ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 text-slate-500 hover:border-emerald-300'">
+                  {{ day.label }}
+                </button>
+              </div>
+              <span v-if="errors.custom_days" class="mt-1 text-sm text-red-600">{{ errors.custom_days }}</span>
+            </label>
+
+            <label class="block">
+              <span class="mb-1.5 block text-sm font-medium text-slate-700">Reminder time (optional)</span>
+              <input v-model="form.reminder_time" type="time" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 outline-none transition focus:border-emerald-400 focus:bg-white">
+            </label>
+
+            <div v-if="message" class="rounded-2xl border px-4 py-3 text-sm" :class="messageType === 'error' ? 'border-red-200 bg-red-50 text-red-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'">
+              {{ message }}
+            </div>
           </div>
-          <span v-if="errors.color" class="mt-1 text-sm text-red-600">{{ errors.color }}</span>
-        </label>
-
-        <label class="block">
-          <span class="mb-2 block text-sm font-medium text-slate-700">Frequency *</span>
-          <select v-model="form.frequency" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-emerald-400 focus:bg-white">
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-            <option value="custom">Custom days</option>
-          </select>
-          <span v-if="errors.frequency" class="mt-1 text-sm text-red-600">{{ errors.frequency }}</span>
-        </label>
-
-        <label v-if="form.frequency === 'custom'" class="block">
-          <span class="mb-2 block text-sm font-medium text-slate-700">Select days</span>
-          <div class="grid grid-cols-7 gap-2">
-            <button v-for="day in days" :key="day.value" type="button" @click="toggleDay(day.value)" class="rounded-xl border px-2 py-2 text-xs font-medium transition" :class="form.custom_days?.includes(day.value) ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 text-slate-500 hover:border-emerald-300'">
-              {{ day.label }}
-            </button>
-          </div>
-          <span v-if="errors.custom_days" class="mt-1 text-sm text-red-600">{{ errors.custom_days }}</span>
-        </label>
-
-        <label class="block">
-          <span class="mb-2 block text-sm font-medium text-slate-700">Reminder time (optional)</span>
-          <input v-model="form.reminder_time" type="time" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-emerald-400 focus:bg-white">
-        </label>
-
-        <div v-if="message" class="rounded-2xl border px-4 py-3 text-sm" :class="messageType === 'error' ? 'border-red-200 bg-red-50 text-red-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'">
-          {{ message }}
         </div>
 
-        <UiButton class="w-full" :disabled="loading">{{ loading ? (isEditing ? 'Saving...' : 'Creating...') : (isEditing ? 'Save changes' : 'Create habit') }}</UiButton>
+        <div class="mt-4 shrink-0 border-t border-slate-100 pt-4">
+          <UiButton class="w-full" :disabled="loading">{{ loading ? (isEditing ? 'Saving...' : 'Creating...') : (isEditing ? 'Save changes' : 'Create habit') }}</UiButton>
+        </div>
       </form>
     </div>
   </div>

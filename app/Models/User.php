@@ -26,6 +26,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
         'language',
         'onboarding_completed',
         'reminder_enabled',

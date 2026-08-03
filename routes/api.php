@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Admin\CategoryController;
 use App\Http\Controllers\Api\Admin\SuggestionController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CalendarController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\HabitController;
 use App\Http\Controllers\Api\MoodController;
 use App\Http\Controllers\Api\NotificationController;
@@ -36,6 +37,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/calendar/month', [CalendarController::class, 'month']);
     Route::get('/calendar/day', [CalendarController::class, 'day']);
+
+    Route::get('/dashboard', [DashboardController::class, 'index']);
+
+    Route::get('/goals', fn () => response()->json(['success' => true, 'goals' => \App\Models\Goal::orderBy('id')->get(['id', 'title'])]));
 
     Route::get('/stats/weekly', [StatsController::class, 'week']);
 

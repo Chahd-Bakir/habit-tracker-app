@@ -3,7 +3,7 @@
     <div class="mx-auto flex min-h-screen max-w-[1600px]">
       <aside class="hidden lg:flex lg:w-72 lg:flex-col lg:border-r lg:border-emerald-100 lg:bg-white/90 lg:backdrop-blur-xl">
         <nav class="flex-1 px-4 py-5">
-          <SidebarNav />
+          <SidebarNav :items="navItems" :brand-title="brandTitle" :brand-subtitle="brandSubtitle" :show-focus-card="showFocusCard" :logout-target="logoutTarget" />
         </nav>
         <div class="border-t border-emerald-100 px-6 py-5">
           <p class="text-sm text-slate-500">Signed in as {{ user?.name ?? 'Guest' }}</p>
@@ -13,12 +13,7 @@
 
       <div class="flex min-w-0 flex-1 flex-col">
         <header class="sticky top-0 z-20 border-b border-emerald-100 bg-white/85 px-4 py-4 backdrop-blur-xl sm:px-6 lg:px-8">
-          <div class="flex items-center justify-between gap-4">
-            <div class="min-w-0 flex-1">
-              <slot name="header" />
-            </div>
-            <NotificationBell />
-          </div>
+          <slot name="header" />
         </header>
 
         <main class="flex-1 px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
@@ -32,8 +27,15 @@
 <script setup>
 import { computed } from 'vue';
 import SidebarNav from './SidebarNav.vue';
-import NotificationBell from './NotificationBell.vue';
 import { getStoredUser } from '../utils/auth';
+
+defineProps({
+  navItems: { type: Array, default: undefined },
+  brandTitle: { type: String, default: 'Khotwa' },
+  brandSubtitle: { type: String, default: 'Habit & wellness' },
+  showFocusCard: { type: Boolean, default: true },
+  logoutTarget: { type: String, default: '/login' },
+});
 
 const user = computed(() => getStoredUser());
 </script>
